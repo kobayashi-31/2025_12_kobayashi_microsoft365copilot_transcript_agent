@@ -2,16 +2,24 @@
     "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.6/schema.json",
     "version": "v1.6",
     "name": "トランスクリプト要約の達人",
-    "description": "トランスクリプトを整形し、MTG議事録として要約するオーケストレーターエージェントです。トランスクリプト整形くんとMTG議事録くんを連携して処理します。",
+    "description": "トランスクリプトの整形と要約を行うハブエージェントです。トランスクリプト整形くん、MTG議事録くん、質疑応答くん、スライドレビューくんと連携して処理します。",
     "instructions": "$[file('instruction.txt')]",
     "conversation_starters": [
         {
-            "title": "トランスクリプトを処理",
-            "text": "このトランスクリプトを整形して、MTG議事録として要約してください"
+            "title": "トランスクリプトを整形",
+            "text": "トランスクリプトを整形してください"
         },
         {
-            "title": "会議記録を作成",
-            "text": "添付したテキストファイルから会議の議事録を作成してください"
+            "title": "MTG議事録要約",
+            "text": "MTG議事録要約をお願いします"
+        },
+        {
+            "title": "質疑応答要約",
+            "text": "質疑応答要約をお願いします"
+        },
+        {
+            "title": "スライドレビュー要約",
+            "text": "スライドレビュー要約をお願いします"
         }
     ],
     "worker_agents": [
@@ -20,6 +28,12 @@
         },
         {
             "id": "${{WORKER_AGENT_2_TITLE_ID}}"
+        },
+        {
+            "id": "${{WORKER_AGENT_3_TITLE_ID}}"
+        },
+        {
+            "id": "${{WORKER_AGENT_4_TITLE_ID}}"
         }
     ]
 }

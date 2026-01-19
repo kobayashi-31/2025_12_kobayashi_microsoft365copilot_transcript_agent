@@ -1,6 +1,6 @@
-# トランスクリプト要約の達人 - オーケストレーターエージェント
+# MTG議事録マン - 仲介エージェント
 
-Microsoft 365 Copilot の **Declarative Agent（宣言型エージェント）** と **Connected Agents（接続エージェント）機能** を活用した、複数エージェント連携システムです。
+Microsoft 365 Copilot の **Declarative Agent（宣言型エージェント）** と **Connected Agents（接続エージェント）機能** を活用した、議事録作成の自動化エージェントです。
 
 ---
 
@@ -21,41 +21,38 @@ Microsoft 365 Copilot の **Declarative Agent（宣言型エージェント）**
 
 ### このエージェントの目的
 
-会議のトランスクリプト（文字起こし）を、以下の2段階で処理します：
+会議のトランスクリプト（文字起こし）を受け取り、**ユーザーの代わりに「MTG議事録くん_V3」を操作**して、議事録のMarkdownとWordファイルを自動生成します。
 
-| フェーズ | 処理内容 | 担当エージェント |
-|---------|---------|----------------|
-| **フェーズ1** | トランスクリプトの整形（話者分離、専門用語補正） | トランスクリプト整形くん |
-| **フェーズ2** | 用途に応じた要約生成 | MTG議事録くん / 質疑応答くん / スライドレビューくん |
+### 主な特徴
+
+- **完全自動化**: ユーザーが1回入力するだけで、内部で自動的に「続き」「要約して」を送り、最終成果物まで取得
+- **仲介特化**: 本エージェントは編集・要約を一切行わず、MTG議事録くん_V3の出力をそのままユーザーに返す
+- **2モード処理**:
+  - **Mode A**: トランスクリプトの整形・修復（分割出力）
+  - **Mode B**: 議事録の生成（Markdown + Wordダウンロードリンク）
 
 ### Connected Agents機能とは
 
-Microsoft 365 Copilotの機能で、**オーケストレーターエージェント**が複数の**ワーカーエージェント**を呼び出して連携処理を行う仕組みです。
+Microsoft 365 Copilotの機能で、**仲介エージェント**が**ワーカーエージェント（MTG議事録くん_V3）**を操作して処理を行う仕組みです。
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      ユーザー                            │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│        トランスクリプト要約の達人（オーケストレーター）        │
-│                   本プロジェクト                          │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-                ┌─────────────────────┐
-                │    整形くん          │  ← フェーズ1: トランスクリプト整形
-                │   (WORKER_1)        │
-                └─────────────────────┘
-                           │
-       ┌───────────────────┼───────────────────┐
-       ▼                   ▼                   ▼
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│議事録くん    │    │質疑応答くん  │    │スライド      │  ← フェーズ2: 用途別要約
-│(WORKER_2)   │    │(WORKER_3)   │    │レビューくん   │
-└─────────────┘    └─────────────┘    │(WORKER_4)   │
-                                      └─────────────┘
+┌─────────────────────────────────────────────┐
+│              ユーザー                        │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────┐
+│      MTG議事録マン（仲介エージェント）        │
+│            本プロジェクト                     │
+└─────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────────┐
+│      MTG議事録くん_V3（ワーカー）             │
+│                                             │
+│  Mode A: 整形・修復（分割出力）               │
+│  Mode B: 議事録生成（Markdown + Word）        │
+└─────────────────────────────────────────────┘
 ```
 
 ---
@@ -68,32 +65,31 @@ Microsoft 365 Copilotの機能で、**オーケストレーターエージェン
 App Package (ZIP)
 ├── manifest.json           ← Microsoft 365 プラットフォーム登録情報
 ├── declarativeAgent.json   ← エージェントの動作定義
-├── instruction.txt         ← システムプロンプト（LLMへの指示）
+├── instruction.txt         ← システムプロンプト（仲介ロジック）
 ├── color.png              ← アイコン（カラー版）
 └── outline.png            ← アイコン（アウトライン版）
 ```
 
-### 処理フロー
+### 処理フロー（自動完走）
 
 ```mermaid
 sequenceDiagram
     participant U as ユーザー
-    participant O as オーケストレーター
-    participant W1 as 整形くん
-    participant W2 as 議事録くん
+    participant M as MTG議事録マン
+    participant W as MTG議事録くん_V3
 
-    U->>O: トランスクリプトファイル + 補足情報
-    O->>W1: 整形依頼
-    W1-->>O: 整形結果（分割出力）
-    O-->>U: 整形結果を表示
-    U->>O: 「続き」
-    O->>W1: 続きの要求
-    W1-->>O: 続きの整形結果
-    O-->>U: 続きを表示
-    U->>O: 「MTG議事録要約」
-    O->>W2: 要約依頼（全整形テキスト）
-    W2-->>O: 議事録形式の要約
-    O-->>U: 要約を表示
+    U->>M: トランスクリプトファイル添付 + 「整形して」
+    M->>W: 「整形して」
+    W-->>M: Mode A 出力（分割1）+ 「続きを出力しますか？」
+    Note over M: ユーザーに確認せず自動継続
+    M->>W: 「続き」
+    W-->>M: Mode A 出力（分割2）+ 「続きを出力しますか？」
+    M->>W: 「続き」
+    W-->>M: Mode A 出力（完了）+ 「整形が完了しました」
+    Note over M: 完了検知→Mode B起動
+    M->>W: 「要約して」
+    W-->>M: Mode B 出力（Markdown + Wordリンク）
+    M-->>U: 最終成果物をそのまま返却
 ```
 
 ---
@@ -105,7 +101,7 @@ sequenceDiagram
 ├── 📁 appPackage/                    # エージェント定義（コア）
 │   ├── manifest.json                 # アプリマニフェスト
 │   ├── declarativeAgent.json         # エージェント設定
-│   ├── instruction.txt               # システムプロンプト
+│   ├── instruction.txt               # システムプロンプト（仲介ロジック）
 │   ├── color.png                     # カラーアイコン
 │   ├── outline.png                   # アウトラインアイコン
 │   └── 📁 build/                     # ビルド成果物（自動生成）
@@ -144,7 +140,8 @@ Microsoft 365 プラットフォームへのアプリ登録情報を定義しま
 |-----------|------|---------------------|
 | `$schema` | スキーマバージョン | v1.24 |
 | `id` | アプリID（環境変数から注入） | `${{TEAMS_APP_ID}}` |
-| `name.short` | 表示名 | トランスクリプト要約の達人 |
+| `name.short` | 表示名 | MTG議事録マン |
+| `description` | 説明 | 会議のトランスクリプトの入力を受け取り、「MTG議事録くん_V3」によって議事録を作成・整形します。 |
 | `copilotAgents` | Copilotエージェント定義 | declarativeAgent.jsonを参照 |
 
 ```json
@@ -152,7 +149,7 @@ Microsoft 365 プラットフォームへのアプリ登録情報を定義しま
   "copilotAgents": {
     "declarativeAgents": [{
       "id": "declarativeAgent",
-      "file": "declarativeAgent.json"  // ← エージェント設定ファイル
+      "file": "declarativeAgent.json"
     }]
   }
 }
@@ -165,22 +162,24 @@ Microsoft 365 プラットフォームへのアプリ登録情報を定義しま
 | プロパティ | 説明 | 本プロジェクトの設定 |
 |-----------|------|---------------------|
 | `$schema` | スキーマバージョン | v1.6 |
+| `name` | エージェント名 | MTG議事録マン |
 | `instructions` | システムプロンプト | instruction.txtを参照 |
-| `conversation_starters` | クイックアクションボタン | 4つの処理を定義 |
-| `worker_agents` | 接続エージェント | 4つのワーカーを定義 |
+| `conversation_starters` | クイックアクションボタン | 「MTG議事録の整形」のみ |
+| `worker_agents` | 接続エージェント | MTG議事録くん_V3 のみ |
 
 ```json
 {
   "instructions": "$[file('instruction.txt')]",
   "conversation_starters": [
-    { "title": "トランスクリプトを整形", "text": "..." },
-    { "title": "MTG議事録要約", "text": "..." }
+    {
+      "title": "MTG議事録の整形",
+      "text": "添付ファイルを整形して．"
+    }
   ],
   "worker_agents": [
-    { "id": "${{WORKER_AGENT_1_TITLE_ID}}" },  // 整形くん
-    { "id": "${{WORKER_AGENT_2_TITLE_ID}}" },  // 議事録くん
-    { "id": "${{WORKER_AGENT_3_TITLE_ID}}" },  // 質疑応答くん
-    { "id": "${{WORKER_AGENT_4_TITLE_ID}}" }   // スライドレビューくん
+    {
+      "id": "${{WORKER_AGENT_TITLE_ID}}"
+    }
   ]
 }
 ```
@@ -189,10 +188,21 @@ Microsoft 365 プラットフォームへのアプリ登録情報を定義しま
 
 LLMへの指示を記述します。本プロジェクトでは以下を定義：
 
-- **役割定義**: 情報の「橋渡し」役（編集禁止）
-- **フェーズ1**: トランスクリプト整形フロー
-- **フェーズ2**: 要約処理フロー
-- **ルール**: エージェント出力の無編集転送
+- **役割定義**: 「仲介エージェント」として動作（編集・要約は一切しない）
+- **最重要ルール**: MTG議事録くん_V3の出力を改変せずに返す
+- **基本フロー**: ユーザー1回入力で自動完走
+  1. **ステップ1**: ファイル添付で「整形して」→Mode A起動
+  2. **ステップ2**: 「続きを出力しますか？」を検知→自動で「続き」送信
+  3. **ステップ3**: 「整形が完了しました」を検知→「要約して」送信（Mode B起動）
+  4. **ステップ4**: Mode B出力（Markdown + Wordリンク）をそのままユーザーに返す
+- **短い送信コマンド**: 
+  - 開始: `整形して`
+  - 継続: `続き`
+  - 要約: `要約して`
+- **禁止事項**: 
+  - 仲介エージェント自身が議事録を作成しない
+  - 整形・修復・話者推定をしない
+  - 分割結果を結合・編集しない
 
 ### 🔷 `env/.env.dev` - 環境変数（開発環境）
 
@@ -203,14 +213,11 @@ APP_NAME_SUFFIX=dev
 AGENT_SCOPE=shared
 
 # 自動生成ID（Provision時に設定）
-TEAMS_APP_ID=2f1929bc-...
-M365_TITLE_ID=T_a4e6dbd8-...
+TEAMS_APP_ID=2f1929bc-b44d-4385-a05b-b94c033a6b29
+M365_TITLE_ID=T_a4e6dbd8-42f7-4c05-aabf-e06971d18f5b
 
 # ★ ワーカーエージェントID（手動設定が必要）
-WORKER_AGENT_1_TITLE_ID=T_47bdc189-...  # 整形くん
-WORKER_AGENT_2_TITLE_ID=T_35e2f1f3-...  # 議事録くん
-WORKER_AGENT_3_TITLE_ID=T_268c0d56-...  # 質疑応答くん
-WORKER_AGENT_4_TITLE_ID=T_8f150434-...  # スライドレビューくん
+WORKER_AGENT_TITLE_ID=T_bd14595f-c719-4289-99e8-a469c30fc79c  # MTG議事録くん_V3
 ```
 
 ### 🔷 `m365agents.yml` / `m365agents.local.yml` - プロビジョニング設定
@@ -224,7 +231,7 @@ Infrastructure as Code として、エージェントのデプロイ手順を定
 | `teamsApp/validateAppPackage` | パッケージ検証 |
 | `teamsApp/update` | Developer Portalに反映 |
 | `teamsApp/extendToM365` | Microsoft 365全体に展開 |
-| `teamsApp/publishAppPackage` | 管理センターに公開申請 |
+| `teamsApp/publishAppPackage` | 管理センターに公開申請（本番のみ） |
 
 **ローカル版との違い:**
 
@@ -242,13 +249,13 @@ Infrastructure as Code として、エージェントのデプロイ手順を定
 - [Node.js](https://nodejs.org/) v18/20/22
 - [Microsoft 365 Agents Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) v5.0.0以上
 - [Microsoft 365 Copilot ライセンス](https://learn.microsoft.com/microsoft-365-copilot/extensibility/prerequisites)
-- **ワーカーエージェント4つ（事前デプロイ済み）**
+- **MTG議事録くん_V3（事前デプロイ済み）**
 
 ### 手順
 
-#### 1. ワーカーエージェントのTitle ID取得
+#### 1. MTG議事録くん_V3のTitle ID取得
 
-各ワーカーエージェントをProvision後、以下のいずれかで取得：
+ワーカーエージェント「MTG議事録くん_V3」をProvision後、以下のいずれかで取得：
 
 - Provision実行時のコンソール出力
 - `env/.env.*.user` ファイル内の `M365_TITLE_ID`
@@ -259,10 +266,7 @@ Infrastructure as Code として、エージェントのデプロイ手順を定
 `env/.env.dev` にワーカーエージェントのTitle IDを設定：
 
 ```env
-WORKER_AGENT_1_TITLE_ID=T_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-WORKER_AGENT_2_TITLE_ID=T_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-WORKER_AGENT_3_TITLE_ID=T_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-WORKER_AGENT_4_TITLE_ID=T_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+WORKER_AGENT_TITLE_ID=T_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 #### 3. プロビジョニング実行
@@ -272,56 +276,76 @@ VS Codeで:
 2. Accountセクションでサインイン
 3. `Preview Local in Copilot (Edge)` または `(Chrome)` を実行
 
+#### 4. 使用方法
+
+1. Microsoft 365 Copilotで「MTG議事録マン」を起動
+2. トランスクリプトファイル（Wordなど）を添付
+3. 「添付ファイルを整形して」と入力
+4. 自動的に処理が完走し、Markdown議事録とWordダウンロードリンクが返される
+
 ---
 
 ## 拡張方法
 
 ### 1. ワーカーエージェントの追加
 
+複数のワーカーエージェントを連携させる場合：
+
 ```json
-// filepath: appPackage/declarativeAgent.json
+// appPackage/declarativeAgent.json
 {
-  // ...existing code...
   "worker_agents": [
-    { "id": "${{WORKER_AGENT_1_TITLE_ID}}" },
-    { "id": "${{WORKER_AGENT_2_TITLE_ID}}" },
-    { "id": "${{WORKER_AGENT_3_TITLE_ID}}" },
-    { "id": "${{WORKER_AGENT_4_TITLE_ID}}" },
-    { "id": "${{WORKER_AGENT_5_TITLE_ID}}" }  // 新規追加
+    { "id": "${{WORKER_AGENT_TITLE_ID}}" },
+    { "id": "${{WORKER_AGENT_2_TITLE_ID}}" }
   ]
 }
 ```
 
 ```env
-// filepath: env/.env.dev
-// ...existing code...
-WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
+// env/.env.dev
+WORKER_AGENT_TITLE_ID=T_bd14595f-c719-4289-99e8-a469c30fc79c
+WORKER_AGENT_2_TITLE_ID=T_新しいエージェントのTitleID
 ```
 
 ### 2. 会話スターターの追加
 
+ユーザー向けのクイックアクションを増やす場合：
+
 ```json
-// filepath: appPackage/declarativeAgent.json
+// appPackage/declarativeAgent.json
 {
-  // ...existing code...
   "conversation_starters": [
-    // ...existing code...
     {
-      "title": "アクション抽出",
-      "text": "整形済みトランスクリプトからアクションアイテムを抽出してください。"
+      "title": "MTG議事録の整形",
+      "text": "添付ファイルを整形して．"
+    },
+    {
+      "title": "質疑応答抽出",
+      "text": "Q&Aセクションだけ抽出して．"
     }
   ]
 }
 ```
 
-### 3. データソース（Capabilities）の追加
+### 3. システムプロンプトのカスタマイズ
+
+`appPackage/instruction.txt` を編集して、仲介ロジックを変更できます。
+
+**例: 中間出力も表示する場合**
+
+```txt
+## ステップ2：継続（Mode Aの分割を最後まで）
+- MTG議事録君_V3の出力に「続きを出力しますか？」が含まれたら：
+  → その出力をユーザーに表示してから、「続き」を送信
+```
+
+### 4. データソース（Capabilities）の追加
 
 #### SharePoint/OneDrive連携
 
 ```json
-// filepath: appPackage/declarativeAgent.json
+// appPackage/declarativeAgent.json
 {
-  // ...existing code...
   "capabilities": [
     {
       "name": "OneDriveAndSharePoint",
@@ -336,9 +360,8 @@ WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
 #### Graph Connectors（エンタープライズ検索）
 
 ```json
-// filepath: appPackage/declarativeAgent.json
+// appPackage/declarativeAgent.json
 {
-  // ...existing code...
   "capabilities": [
     {
       "name": "GraphConnectors",
@@ -353,9 +376,8 @@ WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
 #### Webサイト検索
 
 ```json
-// filepath: appPackage/declarativeAgent.json
+// appPackage/declarativeAgent.json
 {
-  // ...existing code...
   "capabilities": [
     {
       "name": "WebSearch",
@@ -368,14 +390,13 @@ WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
 }
 ```
 
-### 4. APIプラグインの追加
+### 5. APIプラグインの追加
 
 外部APIを呼び出す場合：
 
 ```json
-// filepath: appPackage/declarativeAgent.json
+// appPackage/declarativeAgent.json
 {
-  // ...existing code...
   "actions": [
     {
       "id": "transcriptApi",
@@ -387,7 +408,7 @@ WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
 
 新規ファイル `appPackage/apiPlugin.json` を作成し、OpenAPI仕様でAPIを定義。
 
-### 5. 新環境の追加（staging等）
+### 6. 新環境の追加（staging等）
 
 1. `env/.env.staging` を作成
 2. `TEAMSFX_ENV=staging` を設定
@@ -401,17 +422,21 @@ WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
 
 | 症状 | 原因 | 対処法 |
 |------|------|--------|
-| ワーカーが呼び出せない | Title IDが未設定または不正 | `.env.*` ファイルを確認 |
+| MTG議事録くん_V3が呼び出せない | Title IDが未設定または不正 | `.env.*` ファイルを確認 |
 | エージェントが表示されない | Provisionが未完了 | `Provision` を再実行 |
-| 「続き」で処理が止まる | ワーカーが未インストール | ユーザーにワーカーをインストール |
+| 「続き」で処理が止まる | ワーカーが未インストール | ユーザーにMTG議事録くん_V3をインストール |
+| 自動継続しない | システムプロンプトのキーワード検知が失敗 | instruction.txtの検知条件を確認 |
+| Wordリンクが返されない | Mode B起動に失敗 | 「整形が完了しました」検知を確認 |
 
 ### 制約事項
 
 ⚠️ **テキストのみ通信**: エージェント間ではファイルバイナリ・画像は送信不可
 
-⚠️ **事前インストール必須**: 各ワーカーはユーザーに事前インストールが必要
+⚠️ **事前インストール必須**: MTG議事録くん_V3はユーザーに事前インストールが必要
 
 ⚠️ **プレビュー機能**: Connected Agents機能は現在プレビュー段階
+
+⚠️ **単一ワーカー設計**: 本プロジェクトはMTG議事録くん_V3専用の仲介エージェント
 
 ---
 
@@ -433,13 +458,4 @@ WORKER_AGENT_5_TITLE_ID=T_新しいエージェントのTitleID
 
 - [Build declarative agents](https://learn.microsoft.com/microsoft-365-copilot/extensibility/build-declarative-agents)
 - [Add API plugins](https://learn.microsoft.com/microsoft-365-copilot/extensibility/build-declarative-agents?tabs=ttk&tutorial-step=7)
-## 参考リンク
-
-- [Connect to other agents from a declarative agent](https://learn.microsoft.com/microsoft-365-copilot/extensibility/declarative-agent-connected-agent)
-- [Declarative agent schema v1.6](https://learn.microsoft.com/microsoft-365-copilot/extensibility/declarative-agent-manifest-1.6)
 - [Microsoft 365 Agents Toolkit ガイド](https://github.com/OfficeDev/TeamsFx/wiki/Teams-Toolkit-Visual-Studio-Code-v5-Guide#overview)
-- [Add API plugins](https://learn.microsoft.com/microsoft-365-copilot/extensibility/build-declarative-agents?tabs=ttk&tutorial-step=7) for agent to interact with REST APIs.
-
-## Addition information and references
-
-- [Declarative agents for Microsoft 365](https://aka.ms/teams-toolkit-declarative-agent)

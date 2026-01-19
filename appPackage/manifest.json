@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.24/MicrosoftTeams.schema.json",
   "manifestVersion": "1.24",
-  "version": "1.7.2",
+  "version": "2.0",
   "id": "${{TEAMS_APP_ID}}",
   "developer": {
     "name": "Masato Kobayashi",
@@ -14,12 +14,12 @@
     "outline": "outline.png"
   },
   "name": {
-    "short": "トランスクリプト要約の達人",
-    "full": "複数エージェントオーケストレーター"
+    "short": "MTG議事録マン",
+    "full": "MTG議事録マン"
   },
   "description": {
-    "short": "複数のエージェントを呼び出して応答するオーケストレーター",
-    "full": "このエージェントは、他の専門エージェント（ワーカーエージェント）を呼び出して、ユーザーの質問に包括的に回答します。Connected Agents機能を使用して、複数のエージェントを統合的にオーケストレーションします。"
+    "short": "会議のトランスクリプトの入力を受け取り、「MTG議事録くん_V3」によって議事録を作成・整形します。",
+    "full": "会議のトランスクリプトの入力を受け取り、「MTG議事録くん_V3」によって議事録を作成・整形します。 "
   },
   "accentColor": "#FFFFFF",
   "composeExtensions": [],

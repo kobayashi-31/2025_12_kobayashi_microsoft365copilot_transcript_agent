@@ -427,6 +427,8 @@ WORKER_AGENT_2_TITLE_ID=T_新しいエージェントのTitleID
 | 「続き」で処理が止まる | ワーカーが未インストール | ユーザーにMTG議事録くん_V3をインストール |
 | 自動継続しない | システムプロンプトのキーワード検知が失敗 | instruction.txtの検知条件を確認 |
 | Wordリンクが返されない | Mode B起動に失敗 | 「整形が完了しました」検知を確認 |
+| Color Iconエラー | アイコンサイズが不正 | color.pngを192x192ピクセルに変更 |
+| Full descriptionの警告 | shortとfullが同じ内容 | manifest.jsonのfull descriptionを詳細化 |
 
 ### 制約事項
 
